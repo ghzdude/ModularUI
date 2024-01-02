@@ -30,15 +30,20 @@ public class ItemStackItemHandler implements IItemHandlerModifiable {
     @Override
     public ItemStack getStackInSlot(int slot) {
         validateSlotIndex(slot);
-        NBTTagCompound item = (NBTTagCompound) getItemsNbt().get(slot);
-        return item.isEmpty() ? ItemStack.EMPTY : new ItemStack(item);
+        NBTTagCompound item = getItemsNbt().getCompoundTagAt(slot);
+        int count = item.getInteger("Count");
+        var stack = new ItemStack(item);
+        stack.setCount(count);
+        return item.isEmpty() ? ItemStack.EMPTY : stack;
     }
 
     @Override
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         validateSlotIndex(slot);
         NBTTagList list = getItemsNbt();
-        list.set(slot, stack.isEmpty() ? new NBTTagCompound() : stack.serializeNBT());
+        NBTTagCompound item = stack.serializeNBT();
+        item.setInteger("Count", stack.getCount());
+        list.set(slot, stack.isEmpty() ? new NBTTagCompound() : item);
     }
 
     @NotNull
@@ -100,11 +105,12 @@ public class ItemStackItemHandler implements IItemHandlerModifiable {
 
     @Override
     public int getSlotLimit(int slot) {
-        return 64;
+        return Integer.MAX_VALUE;
     }
 
     protected int getStackLimit(int slot, @NotNull ItemStack stack) {
-        return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+        return getSlotLimit(slot);
+//        return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
     }
 
     protected void onContentsChanged(int slot) {

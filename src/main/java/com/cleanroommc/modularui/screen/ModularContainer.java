@@ -216,6 +216,11 @@ public class ModularContainer extends Container implements ISortableContainer {
                 } else if (clickedSlot.canTakeStack(player)) {
                     if (heldStack.isEmpty() && !slotStack.isEmpty()) {
                         int toRemove = mouseButton == LEFT_MOUSE ? slotStack.getCount() : (slotStack.getCount() + 1) / 2;
+
+                        if (toRemove > slotStack.getMaxStackSize()) {
+                            toRemove = slotStack.getMaxStackSize();
+                        }
+
                         inventoryplayer.setItemStack(slotStack.splitStack(toRemove));
                         clickedSlot.putStack(slotStack);
 
@@ -276,9 +281,11 @@ public class ModularContainer extends Container implements ISortableContainer {
         if (!slot.isPhantom()) {
             ItemStack stack = slot.getStack();
             if (!stack.isEmpty()) {
-                ItemStack remainder = transferItem(slot, stack.copy());
-                if (remainder.isEmpty()) stack = ItemStack.EMPTY;
-                else stack.setCount(remainder.getCount());
+                var insert = stack.copy();
+                int size = Math.min(stack.getCount(), stack.getMaxStackSize());
+                insert.setCount(size);
+                transferItem(slot, insert);
+                stack.shrink(size);
                 slot.putStack(stack);
                 return ItemStack.EMPTY;
             }
@@ -298,12 +305,14 @@ public class ModularContainer extends Container implements ISortableContainer {
                         return fromStack;
                     }
                 } else if (ItemHandlerHelper.canItemStacksStack(fromStack, toStack)) {
-                    int j = toStack.getCount() + fromStack.getCount();
-                    int maxSize = Math.min(toSlot.getSlotStackLimit(), fromStack.getMaxStackSize());
+                    int combined = toStack.getCount() + fromStack.getCount();
+                    int maxSize = toSlot.isIgnoreMaxStackSize() ?
+                            toSlot.getSlotStackLimit() :
+                            Math.min(toSlot.getSlotStackLimit(), fromStack.getMaxStackSize());
 
-                    if (j <= maxSize) {
+                    if (combined <= maxSize) {
                         fromStack.setCount(0);
-                        toStack.setCount(j);
+                        toStack.setCount(combined);
                         toSlot.putStack(toStack);
                     } else if (toStack.getCount() < maxSize) {
                         fromStack.shrink(maxSize - toStack.getCount());
