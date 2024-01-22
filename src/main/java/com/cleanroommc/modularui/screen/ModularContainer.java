@@ -215,7 +215,8 @@ public class ModularContainer extends Container implements ISortableContainer {
                     }
                 } else if (clickedSlot.canTakeStack(player)) {
                     if (heldStack.isEmpty() && !slotStack.isEmpty()) {
-                        int toRemove = mouseButton == LEFT_MOUSE ? slotStack.getCount() : (slotStack.getCount() + 1) / 2;
+                        int stackCount = Math.min(slotStack.getMaxStackSize(), slotStack.getCount());
+                        int toRemove = mouseButton == LEFT_MOUSE ? stackCount : (stackCount + 1) / 2;
 
                         if (toRemove > slotStack.getMaxStackSize()) {
                             toRemove = slotStack.getMaxStackSize();
@@ -235,9 +236,9 @@ public class ModularContainer extends Container implements ISortableContainer {
                                 stackCount = clickedSlot.getItemStackLimit(heldStack) - slotStack.getCount();
                             }
 
-                            if (stackCount > heldStack.getMaxStackSize() - slotStack.getCount()) {
-                                stackCount = heldStack.getMaxStackSize() - slotStack.getCount();
-                            }
+//                            if (stackCount > heldStack.getMaxStackSize() - slotStack.getCount()) {
+//                                stackCount = heldStack.getMaxStackSize() - slotStack.getCount();
+//                            }
 
                             heldStack.shrink(stackCount);
                             slotStack.grow(stackCount);
