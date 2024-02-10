@@ -1,6 +1,7 @@
 package com.cleanroommc.modularui.screen;
 
 import com.cleanroommc.modularui.ModularUI;
+import com.cleanroommc.modularui.api.slot.ISlotOverride;
 import com.cleanroommc.modularui.core.mixin.ContainerAccessor;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.value.sync.GuiSyncManager;
@@ -192,6 +193,14 @@ public class ModularContainer extends Container implements ISortableContainer {
             if (clickTypeIn == ClickType.QUICK_MOVE) {
                 Slot fromSlot = getSlot(slotId);
 
+                if (fromSlot instanceof ISlotOverride slotOverride) {
+                    var result = slotOverride.transferStackInSlot(player, this.shiftClickSlots);
+                    ItemStack stack = result.getReturnable();
+                    if (result.shouldReturn() && stack != null) {
+                        return stack;
+                    }
+                }
+
                 if (!fromSlot.canTakeStack(player)) {
                     return ItemStack.EMPTY;
                 }
@@ -200,7 +209,15 @@ public class ModularContainer extends Container implements ISortableContainer {
             } else {
                 Slot clickedSlot = getSlot(slotId);
 
-                ItemStack slotStack = clickedSlot.getStack();
+                if (clickedSlot instanceof ISlotOverride slotOverride) {
+                    var result = slotOverride.slotClick(mouseButton, clickTypeIn, player, getDragEvent(mouseButton), extractDragMode(mouseButton));
+                    ItemStack stack = result.getReturnable();
+                    if (result.shouldReturn() && stack != null) {
+                        return stack;
+                    }
+                }
+
+                ItemStack slotStack = clickedSlot.getStack().copy();
                 ItemStack heldStack = inventoryplayer.getItemStack();
 
                 if (slotStack.isEmpty()) {
@@ -213,6 +230,7 @@ public class ModularContainer extends Container implements ISortableContainer {
 
                         clickedSlot.putStack(heldStack.splitStack(stackCount));
                     }
+
                 } else if (clickedSlot.canTakeStack(player)) {
                     if (heldStack.isEmpty() && !slotStack.isEmpty()) {
                         int toRemove = mouseButton == LEFT_MOUSE ? slotStack.getCount() : (slotStack.getCount() + 1) / 2;
@@ -220,28 +238,28 @@ public class ModularContainer extends Container implements ISortableContainer {
                         clickedSlot.putStack(slotStack);
 
                         clickedSlot.onTake(player, inventoryplayer.getItemStack());
+
                     } else if (clickedSlot.isItemValid(heldStack)) {
                         if (slotStack.getItem() == heldStack.getItem() &&
                                 slotStack.getMetadata() == heldStack.getMetadata() &&
                                 ItemStack.areItemStackTagsEqual(slotStack, heldStack)) {
                             int stackCount = mouseButton == LEFT_MOUSE ? heldStack.getCount() : 1;
+                            int maxSize = Math.min(clickedSlot.getItemStackLimit(heldStack), heldStack.getMaxStackSize());
 
-                            if (stackCount > clickedSlot.getItemStackLimit(heldStack) - slotStack.getCount()) {
-                                stackCount = clickedSlot.getItemStackLimit(heldStack) - slotStack.getCount();
-                            }
-
-                            if (stackCount > heldStack.getMaxStackSize() - slotStack.getCount()) {
-                                stackCount = heldStack.getMaxStackSize() - slotStack.getCount();
+                            if (stackCount > maxSize - slotStack.getCount()) {
+                                stackCount = maxSize - slotStack.getCount();
                             }
 
                             heldStack.shrink(stackCount);
                             slotStack.grow(stackCount);
+                            inventoryplayer.setItemStack(heldStack);
                             clickedSlot.putStack(slotStack);
 
                         } else if (heldStack.getCount() <= clickedSlot.getItemStackLimit(heldStack)) {
                             clickedSlot.putStack(heldStack);
                             inventoryplayer.setItemStack(slotStack);
                         }
+
                     } else if (slotStack.getItem() == heldStack.getItem() &&
                             heldStack.getMaxStackSize() > 1 &&
                             (!slotStack.getHasSubtypes() || slotStack.getMetadata() == heldStack.getMetadata()) &&
@@ -251,11 +269,10 @@ public class ModularContainer extends Container implements ISortableContainer {
                         if (stackCount + heldStack.getCount() <= heldStack.getMaxStackSize()) {
                             heldStack.grow(stackCount);
                             slotStack = clickedSlot.decrStackSize(stackCount);
+                            slotStack = slotStack.isEmpty() ? ItemStack.EMPTY : slotStack;
 
-                            if (slotStack.isEmpty()) {
-                                clickedSlot.putStack(ItemStack.EMPTY);
-                            }
-
+                            inventoryplayer.setItemStack(heldStack);
+                            clickedSlot.putStack(slotStack);
                             clickedSlot.onTake(player, inventoryplayer.getItemStack());
                         }
                     }
@@ -277,9 +294,7 @@ public class ModularContainer extends Container implements ISortableContainer {
             ItemStack stack = slot.getStack();
             if (!stack.isEmpty()) {
                 ItemStack remainder = transferItem(slot, stack.copy());
-                if (remainder.isEmpty()) stack = ItemStack.EMPTY;
-                else stack.setCount(remainder.getCount());
-                slot.putStack(stack);
+                slot.putStack(remainder);
                 return ItemStack.EMPTY;
             }
         }
@@ -298,17 +313,13 @@ public class ModularContainer extends Container implements ISortableContainer {
                         return fromStack;
                     }
                 } else if (ItemHandlerHelper.canItemStacksStack(fromStack, toStack)) {
-                    int j = toStack.getCount() + fromStack.getCount();
-                    int maxSize = Math.min(toSlot.getSlotStackLimit(), fromStack.getMaxStackSize());
-
-                    if (j <= maxSize) {
-                        fromStack.setCount(0);
-                        toStack.setCount(j);
-                        toSlot.putStack(toStack);
-                    } else if (toStack.getCount() < maxSize) {
-                        fromStack.shrink(maxSize - toStack.getCount());
-                        toStack.setCount(maxSize);
-                        toSlot.putStack(toStack);
+                    if (toSlot instanceof ISlotOverride slotOverride) {
+                        var result = slotOverride.insertStack(fromStack);
+                        if (result.shouldReturn() && result.hasReturnable()) {
+                            return result.getReturnable();
+                        }
+                    } else {
+                        insertStack(toSlot, fromStack);
                     }
 
                     if (fromStack.isEmpty()) {
@@ -321,17 +332,60 @@ public class ModularContainer extends Container implements ISortableContainer {
             ItemStack itemstack = emptySlot.getStack();
             SlotGroup slotGroup = Objects.requireNonNull(emptySlot.getSlotGroup());
             if (slotGroup != fromSlotGroup && emptySlot.isEnabled() && itemstack.isEmpty() && emptySlot.isItemValid(fromStack)) {
-                if (fromStack.getCount() > emptySlot.getSlotStackLimit()) {
-                    emptySlot.putStack(fromStack.splitStack(emptySlot.getSlotStackLimit()));
+                if (emptySlot instanceof ISlotOverride slotOverride) {
+                    var result = slotOverride.insertStack(fromStack);
+                    if (result.shouldReturn() && result.hasReturnable()) {
+                        return result.getReturnable();
+                    }
                 } else {
-                    emptySlot.putStack(fromStack.splitStack(fromStack.getCount()));
+                    insertStack(emptySlot, fromStack);
                 }
-                if (fromStack.getCount() < 1) {
+
+                if (fromStack.isEmpty()) {
                     break;
                 }
             }
         }
         return fromStack;
+    }
+
+    protected static void insertStack(ModularSlot toSlot, ItemStack fromStack) {
+        ItemStack toStack = toSlot.getStack().copy();
+
+        int combined = toStack.getCount() + fromStack.getCount();
+        int maxSize = Math.min(toSlot.getSlotStackLimit(), fromStack.getMaxStackSize());
+
+        if (combined <= maxSize) {
+            fromStack.setCount(0);
+            toStack.setCount(combined);
+            toSlot.putStack(toStack);
+        } else if (toStack.getCount() < maxSize) {
+            fromStack.shrink(maxSize - toStack.getCount());
+            toStack.setCount(maxSize);
+            toSlot.putStack(toStack);
+        }
+    }
+
+    @Override
+    public boolean canMergeSlot(ItemStack stack, Slot slotIn) {
+        if (slotIn instanceof ISlotOverride slotOverride) {
+            var result = slotOverride.canMerge(stack);
+            if (result.shouldReturn()) {
+                return Boolean.TRUE.equals(result.getReturnable());
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean canDragIntoSlot(Slot slotIn) {
+        if (slotIn instanceof ISlotOverride slotOverride) {
+            var result = slotOverride.canDragIntoSlot();
+            if (result.shouldReturn()) {
+                return Boolean.TRUE.equals(result.getReturnable());
+            }
+        }
+        return true;
     }
 
     private static boolean isPlayerSlot(Slot slot) {
