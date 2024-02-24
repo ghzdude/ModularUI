@@ -68,10 +68,6 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         var lookRel = lookingH.subtract(normalH);
         double lookRH = Math.atan(lookRel.z / lookRel.x);
 
-        // fucking dot products
-        double lookDot = lookingH.dotProduct(normalH);
-        double left = normalH.dotProduct(normalH.rotateYaw((float) offsetH));
-        double right = normalH.dotProduct(normalH.rotateYaw((float) -offsetH));
         // check if looking vector is within screen
         if (lookRH < offsetH && lookRH > -offsetH) {
             // diff is the vector from pos to entity
