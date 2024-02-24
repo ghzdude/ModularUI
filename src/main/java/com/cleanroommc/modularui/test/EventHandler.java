@@ -13,7 +13,7 @@ public class EventHandler {
         if (event.getEntityPlayer().getEntityWorld().isRemote && event.getItemStack().getItem() == Items.DIAMOND) {
             //GuiManager.openClientUI(Minecraft.getMinecraft().player, new TestGui());
             HoloUI.builder()
-                    .inFrontOf(Minecraft.getMinecraft().player, 5, false)
+                    .inFrontOf(Minecraft.getMinecraft().player, 5, true)
                     .open(new TestGui());
         }
     }
