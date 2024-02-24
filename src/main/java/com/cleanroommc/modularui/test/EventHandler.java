@@ -1,6 +1,5 @@
 package com.cleanroommc.modularui.test;
 
-import com.cleanroommc.modularui.holoui.HoloScreenEntity;
 import com.cleanroommc.modularui.holoui.HoloUI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Items;
