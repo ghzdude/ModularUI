@@ -10,12 +10,15 @@ import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.vecmath.Vector2d;
 
 /**
  * Highly experimental
@@ -53,19 +56,70 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
     }
 
     private Vec3i calculateMousePos(EntityPlayer player, HoloScreenEntity entity, Vec3d looking) {
-        var entpos = entity.getPositionVector();
-        var pos = player.getPositionVector();
+        var holoPos = entity.getPositionVector();
+        var pos = player.getPositionVector().add(0, player.getEyeHeight(), 0);
 
         var plane = entity.getPlane3D();
         var planeRot = plane.getRotation();
-        var diff = entpos.subtract(pos);
 
-        double l1 = Math.sqrt(looking.x * looking.x + looking.y * looking.y);
-        double l2 = Math.sqrt(looking.z * looking.z + looking.y * looking.y);
-        double x = Math.acos(looking.x / l1);
-        double y = Math.asin(looking.z / l2);
+        // get the difference in the player look vector to the difference of the player's eye position and holo position
+        var diff = holoPos.subtract(pos);
 
-        ModularUI.LOGGER.warn(String.format("looking x {%s}; y {%s}", Math.toDegrees(x), Math.toDegrees(y)));
+        // calculate the angle of diff for horizontal and vertical
+        double a3 = Math.atan(diff.z / diff.x);
+        double l4 = Math.sqrt(diff.z * diff.z + diff.x * diff.x);
+        double a4 = Math.atan(diff.y / l4);
+
+        // rotate look vec separately to not induce rotation error
+        // rotate the look relative vector to match the rotation of the plane
+        var lookRelH = looking
+                .subtract(0, looking.y, 0); // remove the y component
+
+        double l3 = lookRelH.length(); // get the length as is
+
+        // normalize and rotate
+        lookRelH.normalize()
+                .rotateYaw((float) (a3 + planeRot.y))
+                .normalize();
+
+        var lookRelV = looking
+                .subtract(looking.x, 0, looking.z) // remove x and z
+                .add(0, 0, l3) // add back to x as total length
+                .rotatePitch((float) (a4 + planeRot.x)) // pitch handles y and z
+                .normalize();
+
+        // get the angle of the look relative vector, and the hypotenuse is 1 since it should be normalized
+        double aH = Math.acos(lookRelH.z); // horizontal, idk if this needs x or z
+        // might need to offset angle maybe based on x
+//        aH -= Math.PI / 2;
+        double aV = Math.acos(lookRelV.x); // vertical
+//        aV -= Math.PI / 2;
+
+        // using the angle, now find the horizontal and vertical lengths
+        double lH = Math.tan(aH) * diff.length();
+        double lV = -Math.tan(aV) * diff.length();
+        lV += diff.y; // move pos up/down based on diff
+
+        // convert from block distance to pixel distance
+        lH *= 16;
+        lV *= 16;
+
+        // shift values so that 0, 0 is top left
+        lH += plane.getWidth() / 2;
+        lV += plane.getHeight() / 2;
+
+        // compare to the size of the plane
+        if (// lH > 0 && lH < plane.getWidth() &&
+            lV > 0 && lV < plane.getHeight()) {
+            // we are within the plane
+            return new Vec3i(plane.getWidth() / 2, lV, 0);
+        }
+
+//        double l1 = Math.sqrt(looking.x * looking.x + looking.y * looking.y);
+//        double l2 = Math.sqrt(looking.z * looking.z + looking.y * looking.y);
+//        double x = Math.acos(looking.x / l1);
+//        double y = Math.asin(looking.z / l2);
+
         // horizontals only
 //        var diffH = new Vec3d(diff.x, 0, diff.z);
 //        var normalH = diffH.normalize();
@@ -73,7 +127,6 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
 
         // calculate offset to left/right of screen
 //        double offsetH = Math.atan((plane.getWidth() / 16 / 2) / diffH.length());
-//        var lookRel = lookingH.subtract(normalH).normalize();
 //        double lookRH = Math.atan(lookRel.z / lookRel.x) - (Math.PI / 4);
 
         // check if looking vector is within screen
