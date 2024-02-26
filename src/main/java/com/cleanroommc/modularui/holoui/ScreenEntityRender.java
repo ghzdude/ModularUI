@@ -73,9 +73,9 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         var lookRel = looking.subtract(diff.normalize());
 
         // calculate the angle of diff for horizontal and vertical
-        double a3 = Math.atan(diffH.z);
+        double a3 = Math.atan(diffH.z / diffH.x);
 //        double l4 = Math.sqrt(lookRel.z * lookRel.z + lookRel.x * lookRel.x);
-        double a4 = Math.atan(diffV.y);
+        double a4 = Math.atan(diffV.y / diffV.z);
 
         // rotate look vec separately to not induce rotation error
         // rotate the look relative vector to match the rotation of the plane
@@ -86,13 +86,13 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
 
         // normalize and rotate
         lookRelH = lookRelH.normalize()
-                .rotateYaw((float) (a3 + planeRot.y))
+                .rotateYaw((float) (planeRot.y - a3))
                 .normalize();
 
         var lookRelV = lookRel
                 .subtract(lookRel.x, 0, lookRel.z) // remove x and z
                 .add(0, 0, l3) // add back to x as total length
-                .rotatePitch((float) (a4 + planeRot.x)) // pitch handles y and z
+                .rotatePitch((float) (planeRot.x - a4)) // pitch handles y and z
                 .normalize();
 
         // get the angle of the look relative vector, and the hypotenuse is 1 since it should be normalized
@@ -103,8 +103,8 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
 //        aV -= Math.PI / 2;
 
         // using the angle, now find the horizontal and vertical lengths
-        double lH = Math.tan(a3) * diff.length();
-        double lV = -Math.tan(a4) * diff.length();
+        double lH = Math.sin(aH) * diff.length();
+        double lV = Math.cos(aV) * diff.length();
 //        lV += diff.y; // move pos up/down based on diff
         // handle left-right movement somehow
 
