@@ -64,6 +64,8 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
 
         // get the difference in the player look vector to the difference of the player's eye position and holo position
         var diff = holoPos.subtract(pos);
+        double s1 = looking.x / diff.x, s2 = looking.y / diff.y, s3 = looking.z / diff.z;
+
         var diffH = diff.subtract(0, diff.y, 0);
         var diffV = diff.subtract(diff.x, 0, diff.z)
                 .add(0, 0, diffH.length());
