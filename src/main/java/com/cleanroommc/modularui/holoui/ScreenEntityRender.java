@@ -64,45 +64,53 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
 
         // get the difference in the player look vector to the difference of the player's eye position and holo position
         var diff = holoPos.subtract(pos);
+        var diffH = diff.subtract(0, diff.y, 0);
+        var diffV = diff.subtract(diff.x, 0, diff.z)
+                .add(0, 0, diffH.length());
+
+        // get relative vector for looking
+        // 0, 0, 0 means the player is looking exactly at the center of the plane
+        var lookRel = looking.subtract(diff.normalize());
 
         // calculate the angle of diff for horizontal and vertical
-        double a3 = Math.atan(diff.z / diff.x);
-        double l4 = Math.sqrt(diff.z * diff.z + diff.x * diff.x);
-        double a4 = Math.atan(diff.y / l4);
+        double a3 = Math.atan(diffH.z);
+//        double l4 = Math.sqrt(lookRel.z * lookRel.z + lookRel.x * lookRel.x);
+        double a4 = Math.atan(diffV.y);
 
         // rotate look vec separately to not induce rotation error
         // rotate the look relative vector to match the rotation of the plane
-        var lookRelH = looking
-                .subtract(0, looking.y, 0); // remove the y component
+        var lookRelH = lookRel
+                .subtract(0, lookRel.y, 0); // remove the y component
 
         double l3 = lookRelH.length(); // get the length as is
 
         // normalize and rotate
-        lookRelH.normalize()
+        lookRelH = lookRelH.normalize()
                 .rotateYaw((float) (a3 + planeRot.y))
                 .normalize();
 
-        var lookRelV = looking
-                .subtract(looking.x, 0, looking.z) // remove x and z
+        var lookRelV = lookRel
+                .subtract(lookRel.x, 0, lookRel.z) // remove x and z
                 .add(0, 0, l3) // add back to x as total length
                 .rotatePitch((float) (a4 + planeRot.x)) // pitch handles y and z
                 .normalize();
 
         // get the angle of the look relative vector, and the hypotenuse is 1 since it should be normalized
-        double aH = Math.acos(lookRelH.z); // horizontal, idk if this needs x or z
+        double aH = Math.asin(lookRelH.z); // horizontal, idk if this needs x or z
         // might need to offset angle maybe based on x
 //        aH -= Math.PI / 2;
-        double aV = Math.acos(lookRelV.x); // vertical
+        double aV = Math.asin(lookRelV.y); // vertical
 //        aV -= Math.PI / 2;
 
         // using the angle, now find the horizontal and vertical lengths
-        double lH = Math.tan(aH) * diff.length();
-        double lV = -Math.tan(aV) * diff.length();
-        lV += diff.y; // move pos up/down based on diff
+        double lH = Math.tan(a3) * diff.length();
+        double lV = -Math.tan(a4) * diff.length();
+//        lV += diff.y; // move pos up/down based on diff
+        // handle left-right movement somehow
 
         // convert from block distance to pixel distance
-        lH *= 16;
-        lV *= 16;
+        lH *= 16 * plane.getScale();
+        lV *= 16 * plane.getScale();
 
         // shift values so that 0, 0 is top left
         lH += plane.getWidth() / 2;
@@ -112,7 +120,7 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         if (// lH > 0 && lH < plane.getWidth() &&
             lV > 0 && lV < plane.getHeight()) {
             // we are within the plane
-            return new Vec3i(plane.getWidth() / 2, lV, 0);
+            return new Vec3i(lH, lV, 0);
         }
 
 //        double l1 = Math.sqrt(looking.x * looking.x + looking.y * looking.y);
