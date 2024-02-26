@@ -62,9 +62,8 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         var plane = entity.getPlane3D();
         var planeRot = plane.getRotation();
 
-        // get the difference in the player look vector to the difference of the player's eye position and holo position
+        // get the difference of the player's eye position and holo position
         var diff = holoPos.subtract(pos);
-        double s1 = looking.x / diff.x, s2 = looking.y / diff.y, s3 = looking.z / diff.z;
 
         var diffH = diff.subtract(0, diff.y, 0);
         var diffV = diff.subtract(diff.x, 0, diff.z)
@@ -73,6 +72,8 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         // get relative vector for looking
         // 0, 0, 0 means the player is looking exactly at the center of the plane
         var lookRel = looking.subtract(diff.normalize());
+        var v1 = looking.subtract(0, looking.y, 0);
+        double s1 = v1.length() / looking.y;
 
         // calculate the angle of diff for horizontal and vertical
         double a3 = Math.atan(diffH.z / diffH.x);
@@ -118,11 +119,12 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         lH += plane.getWidth() / 2;
         lV += plane.getHeight() / 2;
 
+        lV = s1 * diffH.length();
         // compare to the size of the plane
         if (// lH > 0 && lH < plane.getWidth() &&
             lV > 0 && lV < plane.getHeight()) {
             // we are within the plane
-            return new Vec3i(lH, lV, 0);
+            return new Vec3i(plane.getWidth() / 2, lV, 0);
         }
 
 //        double l1 = Math.sqrt(looking.x * looking.x + looking.y * looking.y);
