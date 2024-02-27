@@ -65,6 +65,24 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         // get the difference of the player's eye position and holo position
         var diff = holoPos.subtract(pos);
 
-        return new Vec3i(0, 0, 0);
+        // rotate diff based on plane rotation
+
+        // x is opposite, z is adjacent, theta = atan(x/z)
+        double a1 = Math.atan(diff.x / diff.z);
+        if (diff.z < 0) {
+            a1 += diff.x < 0 ? -Math.PI : Math.PI;
+        }
+
+        // rotate to make x zero
+        var diffRot = diff.rotateYaw((float) -a1);
+        var lookRot = looking.rotateYaw((float) -a1);
+
+        // the x, y of look rot should be the mouse pos if scaled by the length of diffRot
+        double sf = (diffRot.z / lookRot.z);
+        double mX = ((lookRot.x * sf) - diffRot.x) * -16, mY = ((lookRot.y * sf) - diffRot.y) * -16;
+        mX += plane.getWidth() / 2;
+        mY += plane.getHeight() / 2;
+
+        return new Vec3i(mX, mY, 0);
     }
 }
