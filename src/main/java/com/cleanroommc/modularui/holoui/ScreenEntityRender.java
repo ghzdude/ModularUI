@@ -63,27 +63,27 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         var planeRot = plane.getRotation();
 
         // get the difference of the player's eye position and holo position
-        double a3 = calculateHorizontalAngle(holoPos);
-        var posR = pos.rotateYaw((float) a3);
-        var holoR = holoPos.rotateYaw((float) a3);
-        var diff = holoPos.subtract(pos);
-        var diff2 = holoR.subtractReverse(posR);
-
         // rotate diff based on plane rotation
-        double a1 = calculateHorizontalAngle(diff);
+        double worldAngle = calculateHorizontalAngle(holoPos);
+        var posR = pos.rotateYaw((float) (planeRot.y - worldAngle));
+        var holoR = holoPos.rotateYaw((float) (planeRot.y - worldAngle));
 
-        double a2 = calculateHorizontalAngle(looking);
-
+        // x should be the left-right offset from the player to the holo screen
+        // z should be the distance from the player to the holo screen's plane
+        var diff = holoR.subtract(posR);
 
         // rotate to make x zero
-        var diffRot = diff.rotateYaw((float) -a1);
-        var lookRot = diffRot.rotateYaw((float) a2);
+        var lookRot = looking
+                .rotateYaw((float) (planeRot.y - worldAngle))
+                .rotatePitch((float) planeRot.x);
 
-        // the x, y of look rot should be the mouse pos if scaled by the length of diffRot
-        double sf = (diffRot.z / lookRot.z);
-        double mX = (lookRot.x * sf) * -16;
+        // the x, y of look rot should be the mouse pos if scaled by looRot z
+        // the scale factor should be the distance from the player to the plane by the z component of lookRot
+        double sf = diff.z / lookRot.z;
+        double mX = ((lookRot.x * sf) - diff.x) * 16;
+        double mY = ((lookRot.y * -sf) + diff.y) * 16;
+        mY += plane.getHeight() / 2;
         mX += plane.getWidth() / 2;
-        double mY = plane.getHeight() / 2;
 
         return new Vec3i(mX, mY, 0);
     }
@@ -92,8 +92,8 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         // x is opposite, z is adjacent, theta = atan(x/z)
         double a3 = Math.atan(vec.x / vec.z);
         if (vec.z < 0) {
-            a3 *= -1;
-            a3 += vec.x < 0 ? Math.PI : -Math.PI;
+            // if z is negative, the angle returned by atan has to be offset by PI
+            a3 += vec.x < 0 ? -Math.PI : Math.PI;
         }
         return a3;
     }
