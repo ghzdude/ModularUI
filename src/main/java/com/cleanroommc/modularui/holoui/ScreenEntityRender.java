@@ -63,26 +63,38 @@ public class ScreenEntityRender extends Render<HoloScreenEntity> {
         var planeRot = plane.getRotation();
 
         // get the difference of the player's eye position and holo position
+        double a3 = calculateHorizontalAngle(holoPos);
+        var posR = pos.rotateYaw((float) a3);
+        var holoR = holoPos.rotateYaw((float) a3);
         var diff = holoPos.subtract(pos);
+        var diff2 = holoR.subtractReverse(posR);
 
         // rotate diff based on plane rotation
+        double a1 = calculateHorizontalAngle(diff);
 
-        // x is opposite, z is adjacent, theta = atan(x/z)
-        double a1 = Math.atan(diff.x / diff.z);
-        if (diff.z < 0) {
-            a1 += diff.x < 0 ? -Math.PI : Math.PI;
-        }
+        double a2 = calculateHorizontalAngle(looking);
+
 
         // rotate to make x zero
         var diffRot = diff.rotateYaw((float) -a1);
-        var lookRot = looking.rotateYaw((float) -a1);
+        var lookRot = diffRot.rotateYaw((float) a2);
 
         // the x, y of look rot should be the mouse pos if scaled by the length of diffRot
         double sf = (diffRot.z / lookRot.z);
-        double mX = ((lookRot.x * sf) - diffRot.x) * -16, mY = ((lookRot.y * sf) - diffRot.y) * -16;
+        double mX = (lookRot.x * sf) * -16;
         mX += plane.getWidth() / 2;
-        mY += plane.getHeight() / 2;
+        double mY = plane.getHeight() / 2;
 
         return new Vec3i(mX, mY, 0);
+    }
+
+    private double calculateHorizontalAngle(Vec3d vec) {
+        // x is opposite, z is adjacent, theta = atan(x/z)
+        double a3 = Math.atan(vec.x / vec.z);
+        if (vec.z < 0) {
+            a3 *= -1;
+            a3 += vec.x < 0 ? Math.PI : -Math.PI;
+        }
+        return a3;
     }
 }
