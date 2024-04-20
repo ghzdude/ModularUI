@@ -193,6 +193,7 @@ public class ContainerCustomizer {
                         toSlot.putStack(toStack);
                     }
 
+                    fromSlot.onTake(container.getPlayer(), fromStack);
                     if (fromStack.isEmpty()) {
                         return fromStack;
                     }
@@ -209,6 +210,7 @@ public class ContainerCustomizer {
                     emptySlot.putStack(fromStack.splitStack(fromStack.getCount()));
                 }
                 if (fromStack.getCount() < 1) {
+                    fromSlot.onTake(container.getPlayer(), fromStack);
                     break;
                 }
             }
