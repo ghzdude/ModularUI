@@ -184,16 +184,17 @@ public class ContainerCustomizer {
                     int maxSize = toSlot.getItemStackLimit(fromStack);//Math.min(toSlot.getSlotStackLimit(), fromStack.getMaxStackSize());
 
                     if (j <= maxSize) {
+                        fromSlot.onTake(container.getPlayer(), fromStack);
                         fromStack.setCount(0);
                         toStack.setCount(j);
                         toSlot.putStack(toStack);
                     } else if (toStack.getCount() < maxSize) {
+                        fromSlot.onTake(container.getPlayer(), fromStack);
                         fromStack.shrink(maxSize - toStack.getCount());
                         toStack.setCount(maxSize);
                         toSlot.putStack(toStack);
                     }
 
-                    fromSlot.onTake(container.getPlayer(), fromStack);
                     if (fromStack.isEmpty()) {
                         return fromStack;
                     }
@@ -205,12 +206,13 @@ public class ContainerCustomizer {
             SlotGroup slotGroup = Objects.requireNonNull(emptySlot.getSlotGroup());
             if (slotGroup != fromSlotGroup && emptySlot.isEnabled() && itemstack.isEmpty() && emptySlot.isItemValid(fromStack)) {
                 if (fromStack.getCount() > emptySlot.getItemStackLimit(fromStack)) {
+                    fromSlot.onTake(container.getPlayer(), fromStack);
                     emptySlot.putStack(fromStack.splitStack(emptySlot.getItemStackLimit(fromStack)));
                 } else {
+                    fromSlot.onTake(container.getPlayer(), fromStack);
                     emptySlot.putStack(fromStack.splitStack(fromStack.getCount()));
                 }
                 if (fromStack.getCount() < 1) {
-                    fromSlot.onTake(container.getPlayer(), fromStack);
                     break;
                 }
             }
