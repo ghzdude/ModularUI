@@ -45,16 +45,22 @@ public class ContainerCustomizer {
 
     public void onContainerClosed() {}
 
-    public @NotNull ItemStack slotClick(int slotId, int mouseButton, @NotNull ClickType clickTypeIn, EntityPlayer player) {
-        ItemStack returnable = ItemStack.EMPTY;
-        InventoryPlayer inventoryplayer = player.inventory;
-
+    public final @NotNull ItemStack slotClick(int slotId, int mouseButton, @NotNull ClickType clickTypeIn, EntityPlayer player) {
         if (clickTypeIn == ClickType.QUICK_CRAFT || container.acc().getDragEvent() != 0) {
             return container.superSlotClick(slotId, mouseButton, clickTypeIn, player);
         }
 
-        if ((clickTypeIn == ClickType.PICKUP || clickTypeIn == ClickType.QUICK_MOVE) &&
-                (mouseButton == LEFT_MOUSE || mouseButton == RIGHT_MOUSE)) {
+        return switch (clickTypeIn) {
+            case PICKUP, QUICK_MOVE -> handlePickupOrQuickMove(slotId, mouseButton, clickTypeIn, player);
+            case PICKUP_ALL -> handlePickupAll(slotId, mouseButton, clickTypeIn, player);
+            default -> container.superSlotClick(slotId, mouseButton, clickTypeIn, player);
+        };
+    }
+
+    public ItemStack handlePickupOrQuickMove(int slotId, int mouseButton, @NotNull ClickType clickTypeIn, EntityPlayer player) {
+        ItemStack returnable = ItemStack.EMPTY;
+        InventoryPlayer inventoryplayer = player.inventory;
+        if (mouseButton == LEFT_MOUSE || mouseButton == RIGHT_MOUSE) {
             if (slotId == DROP_TO_WORLD) {
                 if (!inventoryplayer.getItemStack().isEmpty()) {
                     if (mouseButton == LEFT_MOUSE) {
@@ -141,10 +147,12 @@ public class ContainerCustomizer {
                 clickedSlot.onSlotChanged();
             }
             container.detectAndSendChanges();
-            return returnable;
         }
+        return returnable;
+    }
 
-        return container.superSlotClick(slotId, mouseButton, clickTypeIn, player);
+    public ItemStack handlePickupAll(int slotId, int mouseButton, @NotNull ClickType clickTypeIn, EntityPlayer player) {
+        return ItemStack.EMPTY;
     }
 
     public @NotNull ItemStack transferStackInSlot(@NotNull EntityPlayer playerIn, int index) {
