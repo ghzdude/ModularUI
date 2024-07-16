@@ -1,10 +1,13 @@
 package com.cleanroommc.modularui.test;
 
 import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.factory.HandGuiData;
 import com.cleanroommc.modularui.factory.ItemGuiFactory;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.ItemCapabilityProvider;
 import com.cleanroommc.modularui.utils.ItemStackItemHandler;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -13,6 +16,8 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ItemSlot;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Column;
+
+import com.cleanroommc.modularui.widgets.layout.Grid;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -32,6 +37,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestItem extends Item implements IGuiHolder<HandGuiData> {
 
@@ -43,17 +50,38 @@ public class TestItem extends Item implements IGuiHolder<HandGuiData> {
         guiSyncManager.registerSlotGroup("mixer_items", 2);
 
         ModularPanel panel = ModularPanel.defaultPanel("knapping_gui");
-        panel.child(new Column().margin(7)
-                .child(new ParentWidget<>().widthRel(1f).expanded()
-                        .child(SlotGroupWidget.builder()
-                                .row("II")
-                                .row("II")
-                                .key('I', index -> new ItemSlot().slot(SyncHandlers.itemSlot(itemHandler, index)
-                                        .ignoreMaxStackSize(true)
-                                        .slotGroup("mixer_items")))
-                                .build()
-                                .align(Alignment.Center)))
-                .child(SlotGroupWidget.playerInventory(0)));
+        List<IWidget> l = new ArrayList<>(3);
+        l.add(new Rectangle()
+                .setColor(Color.RED.main)
+                .asWidget()
+                .size(18)
+                .marginRight(0));
+        l.add(new Rectangle()
+                .setColor(Color.BLUE.main)
+                .asWidget()
+                .size(18)
+                .marginRight(2));
+        l.add(new Rectangle()
+                .setColor(Color.GREEN.main)
+                .asWidget()
+                .size(18));
+        panel.width(200);
+        panel.child(new Grid()
+                .width(190)
+                .margin(0)
+                .coverChildrenHeight()
+                .mapTo(3, l, (i, widget) -> widget));
+//        panel.child(new Column().margin(7)
+//                .child(new ParentWidget<>().widthRel(1f).expanded()
+//                        .child(SlotGroupWidget.builder()
+//                                .row("II")
+//                                .row("II")
+//                                .key('I', index -> new ItemSlot().slot(SyncHandlers.itemSlot(itemHandler, index)
+//                                        .ignoreMaxStackSize(true)
+//                                        .slotGroup("mixer_items")))
+//                                .build()
+//                                .align(Alignment.Center)))
+//                .child(SlotGroupWidget.playerInventory(0)));
 
         return panel;
     }
