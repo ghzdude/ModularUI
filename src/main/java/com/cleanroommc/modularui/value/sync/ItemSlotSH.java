@@ -72,6 +72,10 @@ public class ItemSlotSH extends SyncHandler {
             boolean onlyAmountChanged = buf.readBoolean();
             this.lastStoredItem = NetworkUtils.readItemStack(buf);
             getSlot().onSlotChangedReal(this.lastStoredItem, onlyAmountChanged, true, buf.readBoolean());
+            if (isPhantom()) {
+                this.lastStoredPhantomItem = this.lastStoredItem;
+                getSlot().putStack(this.lastStoredPhantomItem.isEmpty() ? ItemStack.EMPTY : this.lastStoredPhantomItem.copy());
+            }
         } else if (id == 4) {
             setEnabled(buf.readBoolean(), false);
         }
