@@ -9,6 +9,7 @@ import zone.rong.mixinbooter.ILateMixinLoader;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public class LateMixins implements ILateMixinLoader {
 
     public static final List<String> modMixins = ImmutableList.of("jei");

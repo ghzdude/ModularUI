@@ -1,5 +1,5 @@
 {
-  "package": "com.cleanroommc.modularui.core.mixin.jei",
+  "package": "com.cleanroommc.modularui.core.latemixins.jei",
   "refmap": "mixins.modularui.refmap.json",
   "target": "@env(DEFAULT)",
   "minVersion": "0.8",
