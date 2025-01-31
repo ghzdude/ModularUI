@@ -77,7 +77,7 @@ public class TextFieldWidget extends BaseTextFieldWidget<TextFieldWidget> {
             this.stringValue = iStringValue;
             valueSyncHandler.setChangeListener(() -> {
                 markTooltipDirty();
-                setText(this.stringValue.getValue().toString());
+                updateText();
             });
             return true;
         }
@@ -87,12 +87,7 @@ public class TextFieldWidget extends BaseTextFieldWidget<TextFieldWidget> {
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (!isFocused()) {
-            String s = this.stringValue.getStringValue();
-            if (!getText().equals(s)) {
-                setText(s);
-            }
-        }
+        updateText();
     }
 
     @Override
@@ -107,8 +102,8 @@ public class TextFieldWidget extends BaseTextFieldWidget<TextFieldWidget> {
 
     @Override
     public void drawForeground(ModularGuiContext context) {
-        if (hasTooltip() && getScrollData().isScrollBarActive(getScrollArea()) && isHoveringFor(getTooltip().getShowUpTimer())) {
-            getTooltip().draw(getContext());
+        if (hasTooltip() && getScrollData().isScrollBarActive(getScrollArea()) && isHoveringFor(tooltip().getShowUpTimer())) {
+            tooltip().draw(getContext());
         }
     }
 
@@ -128,6 +123,15 @@ public class TextFieldWidget extends BaseTextFieldWidget<TextFieldWidget> {
             this.handler.getText().add(text);
         } else {
             this.handler.getText().set(0, text);
+        }
+    }
+
+    public void updateText() {
+        if (!isFocused()) {
+            String s = this.stringValue.getStringValue();
+            if (!getText().equals(s)) {
+                setText(s);
+            }
         }
     }
 
