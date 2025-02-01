@@ -27,6 +27,7 @@ import java.util.List;
 public class RichTextCompiler {
 
     public static final RichTextCompiler INSTANCE = new RichTextCompiler();
+    public static final String NEWLINE = "/n";
 
     private FontRenderer fr;
     private int maxWidth;
@@ -75,7 +76,7 @@ public class RichTextCompiler {
                 text = String.valueOf(o);
             }
             if (text != null) {
-                compileString(text);
+                compileString(text.replace("\n", NEWLINE));
                 continue;
             }
             if (!(o instanceof IIcon)) {
@@ -102,13 +103,13 @@ public class RichTextCompiler {
     }
 
     private void compileString(String text) {
-        int l = text.indexOf('\n');
+        int l = text.indexOf(NEWLINE);
         int k = 0;
         do {
             // essentially splits text at \n and compiles it
             if (l < 0) l = text.length(); // no line feed, use rest of string
             String subText = text.substring(k, l);
-            k = l + 1; // start next sub string here
+            k = l + 2; // start next sub string here
             while (!subText.isEmpty()) {
                 // how many chars fit
                 int i = ((FontRendererAccessor) fr).invokeSizeStringToWidth(subText, maxWidth - this.x);
@@ -147,11 +148,11 @@ public class RichTextCompiler {
                 if (c == ' ') i++; // if was split at space then don't include it in next sub text
                 subText = subText.substring(i); // set sub text to part after split
             }
-            if (l < text.length() && text.charAt(l) == '\n') {
+            if (l < text.length() && text.charAt(l) == '/' && text.charAt(l + 1) == 'n') {
                 // was split at line feed -> new line
                 newLine();
             }
-        } while ((l = text.indexOf('\n', k)) >= 0 || k < text.length()); // if no line feed found, check if we are at the end of the text
+        } while ((l = text.indexOf(NEWLINE, k)) >= 0 || k < text.length()); // if no line feed found, check if we are at the end of the text
     }
 
     private void newLine() {
