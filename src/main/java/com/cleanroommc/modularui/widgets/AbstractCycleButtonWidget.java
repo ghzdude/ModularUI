@@ -14,6 +14,8 @@ import com.cleanroommc.modularui.value.IntValue;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.cleanroommc.modularui.widget.Widget;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +34,7 @@ public class AbstractCycleButtonWidget<W extends AbstractCycleButtonWidget<W>> e
     protected IDrawable[] overlay = null;
     protected IDrawable[] hoverOverlay = null;
     private final List<RichTooltip> stateTooltip = new ArrayList<>();
+    private final Int2ObjectMap<RichTooltip> test = new Int2ObjectOpenHashMap<>();
 
     @Override
     public void onInit() {
@@ -135,11 +138,21 @@ public class AbstractCycleButtonWidget<W extends AbstractCycleButtonWidget<W>> e
 
     @Override
     public @Nullable RichTooltip getTooltip() {
+        return this.test.get(getState());
+    }
+
+    @Override
+    public @NotNull RichTooltip tooltip() {
         RichTooltip tooltip = super.getTooltip();
-        if (tooltip == null || tooltip.isEmpty()) {
-            return this.stateTooltip.get(getState());
+        if (tooltip == null) {
+            tooltip = super.tooltip();
+            this.test.defaultReturnValue(tooltip);
         }
-        return tooltip;
+        if (lastValue == -1) {
+            return this.test.defaultReturnValue();
+        } else {
+            return this.test.computeIfAbsent(this.lastValue, i -> new RichTooltip());
+        }
     }
 
     protected W value(IIntValue<?> value) {
@@ -222,11 +235,13 @@ public class AbstractCycleButtonWidget<W extends AbstractCycleButtonWidget<W>> e
     protected W stateCount(int stateCount) {
         this.stateCount = stateCount;
         // adjust tooltip buffer size
-        while (this.stateTooltip.size() < this.stateCount) {
-            this.stateTooltip.add(new RichTooltip().parent(this));
+        while (this.test.size() < this.stateCount) {
+//            this.stateTooltip.add(new RichTooltip().parent(this));
+            this.test.put(this.test.size(), new RichTooltip().parent(this));
         }
-        while (this.stateTooltip.size() > this.stateCount) {
-            this.stateTooltip.remove(this.stateTooltip.size() - 1);
+        while (this.test.size() > this.stateCount) {
+//            this.stateTooltip.remove(this.stateTooltip.size() - 1);
+            this.test.remove(this.test.size() - 1);
         }
         this.background = checkArray(this.background, stateCount);
         this.overlay = checkArray(this.overlay, stateCount);
@@ -265,12 +280,12 @@ public class AbstractCycleButtonWidget<W extends AbstractCycleButtonWidget<W>> e
     }
 
     protected W tooltip(int index, Consumer<RichTooltip> builder) {
-        builder.accept(this.stateTooltip.get(index));
+        builder.accept(this.test.get(index));
         return getThis();
     }
 
     protected W tooltipBuilder(int index, Consumer<RichTooltip> builder) {
-        this.stateTooltip.get(index).tooltipBuilder(builder);
+        this.test.get(index).tooltipBuilder(builder);
         return getThis();
     }
 }
