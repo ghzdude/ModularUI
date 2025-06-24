@@ -3,7 +3,11 @@ package com.cleanroommc.modularui.widget.scroll;
 import com.cleanroommc.modularui.animation.Animator;
 import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.Interpolation;
+
+import com.cleanroommc.modularui.utils.MathUtils;
+import com.cleanroommc.modularui.widget.sizer.Area;
 
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.relauncher.Side;
@@ -143,6 +147,10 @@ public abstract class ScrollData {
         return getFullVisibleSize(area, false);
     }
 
+    public final int getFullVisibleSize(Area area) {
+        return area.getSize(this.axis);
+    }
+
     public final int getFullVisibleSize(ScrollArea area, boolean isOtherActive) {
         int s = getRawFullVisibleSize(area);
         ScrollData data = getOtherScrollData(area);
@@ -156,7 +164,15 @@ public abstract class ScrollData {
         return getVisibleSize(area, false);
     }
 
+    public final int getVisibleSize(Area area) {
+        return getVisibleSize(area, area.getSize(this.axis));
+    }
+
     public final int getVisibleSize(ScrollArea area, int fullVisibleSize) {
+        return Math.max(0, fullVisibleSize - area.getPadding().getTotal(this.axis));
+    }
+
+    public final int getVisibleSize(Area area, int fullVisibleSize) {
         return Math.max(0, fullVisibleSize - area.getPadding().getTotal(this.axis));
     }
 
@@ -169,6 +185,13 @@ public abstract class ScrollData {
         return (mainAxisPos - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
     }
 
+    public float getProgress(Area area, int x, int y) {
+        int mainAxisPos = this.axis.isHorizontal() ? x : y;
+        float fullSize = (float) getFullVisibleSize(area);
+        float progress = (mainAxisPos - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
+        return MathUtils.clamp(progress, 0f, 1f);
+    }
+
     @Nullable
     public abstract ScrollData getOtherScrollData(ScrollArea area);
 
@@ -176,6 +199,21 @@ public abstract class ScrollData {
      * Clamp scroll to the bounds of the scroll size;
      */
     public boolean clamp(ScrollArea area) {
+        int size = getVisibleSize(area);
+
+        int old = this.scroll;
+        if (this.scrollSize <= size) {
+            this.scroll = 0;
+        } else {
+            this.scroll = MathHelper.clamp(this.scroll, 0, this.scrollSize - size);
+        }
+        return old != this.scroll; // returns true if the area was clamped
+    }
+
+    /**
+     * Clamp scroll to the bounds of the scroll size;
+     */
+    public boolean clamp(Area area) {
         int size = getVisibleSize(area);
 
         int old = this.scroll;
@@ -197,6 +235,14 @@ public abstract class ScrollData {
      */
     public boolean scrollTo(ScrollArea area, int x) {
         this.scroll = x;
+        return clamp(area);
+    }
+
+    /**
+     * Scroll to the position in the scroll area
+     */
+    public boolean scrollTo(Area area, int scroll) {
+        this.scroll = scroll;
         return clamp(area);
     }
 
@@ -237,6 +283,11 @@ public abstract class ScrollData {
         return Math.max(length, 4); // min length of 4
     }
 
+    public int getScrollBarLength(Area area) {
+        int length = (int) (getVisibleSize(area) * getFullVisibleSize(area) / (float) this.scrollSize);
+        return Math.max(length, 4); // min length of 4
+    }
+
     public abstract boolean isInsideScrollbarArea(ScrollArea area, int x, int y);
 
     public boolean isAnimating() {
@@ -260,8 +311,19 @@ public abstract class ScrollData {
         return getScrollBarStart(area, scrollBarLength, getFullVisibleSize(area, isOtherActive));
     }
 
+    public int getScrollBarStart(Area area, int scrollBarLength, int fullVisibleSize) {
+        return ((fullVisibleSize - scrollBarLength) * getScroll()) / (getScrollSize() - getVisibleSize(area, fullVisibleSize));
+    }
+
+    public int getScrollBarStart(Area area, int scrollBarLength) {
+        return getScrollBarStart(area, scrollBarLength, getFullVisibleSize(area));
+    }
+
     @SideOnly(Side.CLIENT)
     public abstract void drawScrollbar(ScrollArea area);
+
+    @SideOnly(Side.CLIENT)
+    public abstract void drawScrollbar(WidgetTheme theme, Area area);
 
     @SideOnly(Side.CLIENT)
     protected void drawScrollBar(int x, int y, int w, int h) {
@@ -282,6 +344,31 @@ public abstract class ScrollData {
 
             if (clickInsideBar) {
                 this.clickOffset = mainAxisPos - areaStart - start; // relative click position inside bar
+            } else {
+                this.clickOffset = scrollBarSize / 2; // assume click position in center of bar
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+    public boolean onMouseClicked(Area area, int x, int y) {
+        int crossAxis = axis.isHorizontal() ? y : x;
+        int mainAxis = axis.isHorizontal() ? x : y;
+
+        if (isOnAxisStart() && crossAxis <= area.getPoint(this.axis.getOther()) + getThickness() ||
+                !isOnAxisStart() && crossAxis >= area.getEndPoint(this.axis.getOther()) - getThickness()) {
+            this.dragging = true;
+            this.clickOffset = mainAxis;
+
+            int scrollBarSize = getScrollBarLength(area);
+            int start = getScrollBarStart(area, scrollBarSize);
+            int areaStart = area.getPoint(this.axis);
+            boolean clickInsideBar = mainAxis >= areaStart + start && mainAxis <= areaStart + start + scrollBarSize;
+
+            if (clickInsideBar) {
+                this.clickOffset = x - areaStart - start; // relative click position inside bar
             } else {
                 this.clickOffset = scrollBarSize / 2; // assume click position in center of bar
             }

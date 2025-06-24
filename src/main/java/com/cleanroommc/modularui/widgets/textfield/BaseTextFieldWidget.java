@@ -64,7 +64,7 @@ public class BaseTextFieldWidget<W extends BaseTextFieldWidget<W>> extends Abstr
     public BaseTextFieldWidget() {
         super(new HorizontalScrollData(), null);
         this.handler.setRenderer(this.renderer);
-        this.handler.setScrollArea(getScrollArea());
+//        this.handler.setScrollArea(getScrollArea());
         padding(4, 0);
     }
 
@@ -132,7 +132,7 @@ public class BaseTextFieldWidget<W extends BaseTextFieldWidget<W>> extends Abstr
         } else {
             this.renderer.draw(this.handler.getText());
         }
-        getScrollArea().getScrollX().setScrollSize(Math.max(0, (int) (this.renderer.getLastActualWidth() + 0.5f)));
+        setHorizontalScrollSize(Math.max(0, (int) (this.renderer.getLastActualWidth() + 0.5f)));
     }
 
     @Override
@@ -202,7 +202,7 @@ public class BaseTextFieldWidget<W extends BaseTextFieldWidget<W>> extends Abstr
 
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
-        if (isFocused() && !getScrollArea().isDragging()) {
+        if (isFocused() && !isDraggingScroll()) {
             int x = getContext().getMouseX() + getScrollX();
             int y = getContext().getMouseY() + getScrollY();
             this.handler.setMainCursor(this.renderer.getCursorPos(this.handler.getText(), x, y), true);
@@ -293,9 +293,9 @@ public class BaseTextFieldWidget<W extends BaseTextFieldWidget<W>> extends Abstr
         return this.handler.getMaxLines();
     }
 
-    public ScrollData getScrollData() {
-        return getScrollArea().getScrollX();
-    }
+//    public ScrollData getScrollData() {
+//        return getScrollArea().getScrollX();
+//    }
 
     public List<String> getLastText() {
         return lastText;

@@ -93,12 +93,13 @@ public class Grid extends AbstractScrollWidget<IWidget, Grid> implements ILayout
             }
             y += height;
         }
-        if (getScrollArea().getScrollX() != null) {
-            getScrollArea().getScrollX().setScrollSize(x);
-        }
-        if (getScrollArea().getScrollY() != null) {
-            getScrollArea().getScrollY().setScrollSize(y);
-        }
+        setScrollSize(x, y);
+//        if (getScrollArea().getScrollX() != null) {
+//            getScrollArea().getScrollX().setScrollSize(x);
+//        }
+//        if (getScrollArea().getScrollY() != null) {
+//            getScrollArea().getScrollY().setScrollSize(y);
+//        }
     }
 
     @Override
@@ -243,13 +244,13 @@ public class Grid extends AbstractScrollWidget<IWidget, Grid> implements ILayout
     }
 
     public Grid scrollable(ScrollData data) {
-        getScrollArea().setScrollData(data);
+//        getScrollArea().setScrollData(data);
         return this;
     }
 
     public Grid scrollable(VerticalScrollData data1, HorizontalScrollData data2) {
-        getScrollArea().setScrollData(data1);
-        getScrollArea().setScrollData(data2);
+//        getScrollArea().setScrollData(data1);
+//        getScrollArea().setScrollData(data2);
         return this;
     }
 

@@ -1,6 +1,7 @@
 package com.cleanroommc.modularui.widgets.textfield;
 
 import com.cleanroommc.modularui.ModularUI;
+import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.value.IStringValue;
@@ -100,7 +101,7 @@ public class TextFieldWidget extends BaseTextFieldWidget<TextFieldWidget> {
 
     @Override
     public void drawForeground(ModularGuiContext context) {
-        if (hasTooltip() && getScrollData().isScrollBarActive(getScrollArea()) && isHoveringFor(getTooltip().getShowUpTimer())) {
+        if (hasTooltip() && isScrollActive(GuiAxis.X) && isHoveringFor(getTooltip().getShowUpTimer())) {
             getTooltip().draw(getContext());
         }
     }

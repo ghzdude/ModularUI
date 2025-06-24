@@ -148,7 +148,8 @@ public class CategoryList extends AbstractParentWidget<IWidget, CategoryList> im
                 y += widget instanceof CategoryList categoryList && categoryList.expanded ?
                         categoryList.totalHeight : widget.getArea().height;
             }
-            getScrollArea().getScrollY().setScrollSize(y);
+            setVerticalScrollSize(y);
+//            getScrollArea().getScrollY().setScrollSize(y);
         }
 
         public Root setCollapsedOverlay(IDrawable collapsedOverlay) {

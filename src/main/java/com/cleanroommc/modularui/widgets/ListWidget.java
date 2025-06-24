@@ -124,7 +124,7 @@ public class ListWidget<I extends IWidget, W extends ListWidget<I, W>> extends A
         super.onChildAdd(child);
         if (isValid()) {
             scheduleResize();
-            this.scrollData.clamp(getScrollArea());
+//            this.scrollData.clamp(getScrollArea());
         }
     }
 
@@ -133,7 +133,7 @@ public class ListWidget<I extends IWidget, W extends ListWidget<I, W>> extends A
         super.onChildRemove(child);
         if (isValid()) {
             scheduleResize();
-            this.scrollData.clamp(getScrollArea());
+//            this.scrollData.clamp(getScrollArea());
         }
     }
 
@@ -152,8 +152,8 @@ public class ListWidget<I extends IWidget, W extends ListWidget<I, W>> extends A
 
     public W scrollDirection(ScrollData data) {
         this.scrollData = data;
-        getScrollArea().removeScrollData();
-        getScrollArea().setScrollData(this.scrollData);
+//        getScrollArea().removeScrollData();
+//        getScrollArea().setScrollData(this.scrollData);
         return getThis();
     }
 
