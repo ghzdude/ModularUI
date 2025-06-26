@@ -2,6 +2,7 @@ package com.cleanroommc.modularui.widget.scroll;
 
 import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.widget.sizer.Area;
 
@@ -81,17 +82,17 @@ public class HorizontalScrollData extends ScrollData {
         drawScrollBar(x, y, w, h);
     }
 
-    @Override
-    public void drawScrollbar(WidgetTheme theme, Area area) {
-        int l = getScrollBarLength(area);
-        int x = 0;
-        int y = isOnAxisStart() ? 0 : area.height - getThickness();
-        int w = area.width;
-        int h = getThickness();
-        GuiDraw.drawRect(x, y, w, h, theme.getColor());
-
-        x = getScrollBarStart(area, l);
-        w = l;
-        drawScrollBar(x, y, w, h);
-    }
+//    @Override
+//    public void drawScrollbar(WidgetTheme theme, Area area) {
+//        int l = getScrollBarLength(area);
+//        int x = 0;
+//        int y = isOnAxisStart() ? 0 : area.height - getThickness();
+//        int w = area.width;
+//        int h = getThickness();
+//        GuiDraw.drawRect(x, y, w, h, theme.getColor());
+//
+//        x = getScrollBarStart(area, l);
+//        w = l;
+//        drawScrollBar(x, y, w, h);
+//    }
 }

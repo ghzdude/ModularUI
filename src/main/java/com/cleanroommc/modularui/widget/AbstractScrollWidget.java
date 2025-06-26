@@ -113,12 +113,9 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
 
     @Override
     public boolean onMouseScroll(ModularScreen.UpOrDown scrollDirection, int amount) {
-//        if (this.horizontalBar.onMouseScroll(scrollDirection, amount)) {
-//            return true;
-//        }
+        return this.horizontalBar.onMouseScroll(scrollDirection, amount);
 //        return this.verticalBar.onMouseScroll(scrollDirection, amount);
 //        return this.scroll.mouseScroll(getContext());
-        return false;
     }
 
     @Override

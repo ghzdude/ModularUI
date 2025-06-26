@@ -2,7 +2,6 @@ package com.cleanroommc.modularui.widget.scroll;
 
 import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.cleanroommc.modularui.api.widget.IGuiAction;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
@@ -13,7 +12,6 @@ import com.cleanroommc.modularui.widget.sizer.Area;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Supplier;
@@ -97,8 +95,8 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable, IDrawa
         if (this.data == null || !this.data.dragging) {
             return;
         }
-        float progress = data.getProgress(getArea(), x, y);
-        this.data.scrollTo(getArea(), (int) (progress * (data.getScrollSize() - getArea().getSize(data.getAxis()) + data.getThickness())));
+        float progress = data.getProgress(getParentArea(), x, y);
+        this.data.scrollTo(getParentArea(), (int) (progress * (data.getScrollSize() - data.getVisibleSize(getParentArea()))));
     }
 
     public int getScroll() {
@@ -107,7 +105,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable, IDrawa
 
     @Override
     public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme widgetTheme) {
-        if (data != null) {
+        if (data != null && data.shouldDraw(width, height)) {
             this.data.drawScrollbar(widgetTheme, getParentArea());
         }
     }

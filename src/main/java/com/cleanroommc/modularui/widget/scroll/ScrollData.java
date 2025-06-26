@@ -2,8 +2,11 @@ package com.cleanroommc.modularui.widget.scroll;
 
 import com.cleanroommc.modularui.animation.Animator;
 import com.cleanroommc.modularui.api.GuiAxis;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
+import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.Interpolation;
 
 import com.cleanroommc.modularui.utils.MathUtils;
@@ -15,7 +18,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.jetbrains.annotations.Nullable;
 
-public abstract class ScrollData {
+public abstract class ScrollData implements IDrawable {
 
     /**
      * Creates scroll data which handles scrolling and scroll bar. Scrollbar is 4 pixel thick
@@ -185,8 +188,8 @@ public abstract class ScrollData {
         return (mainAxisPos - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
     }
 
-    public float getProgress(Area area, int x, int y) {
-        int mainAxisPos = this.axis.isHorizontal() ? x : y;
+    public float getProgress(Area area, int mx, int my) {
+        int mainAxisPos = this.axis.isHorizontal() ? mx : my;
         float fullSize = (float) getFullVisibleSize(area);
         float progress = (mainAxisPos - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
         return MathUtils.clamp(progress, 0f, 1f);
@@ -284,7 +287,7 @@ public abstract class ScrollData {
     }
 
     public int getScrollBarLength(Area area) {
-        int length = (int) (getVisibleSize(area) * getFullVisibleSize(area) / (float) this.scrollSize);
+        int length = (int) (getVisibleSize(area) / (float) this.scrollSize);
         return Math.max(length, 4); // min length of 4
     }
 
@@ -323,7 +326,38 @@ public abstract class ScrollData {
     public abstract void drawScrollbar(ScrollArea area);
 
     @SideOnly(Side.CLIENT)
-    public abstract void drawScrollbar(WidgetTheme theme, Area area);
+    public void drawScrollbar(WidgetTheme theme, Area area) {
+        draw(GuiContext.getDefault(), area, theme);
+    }
+
+    @Override
+    public void draw(GuiContext context, Area area, WidgetTheme widgetTheme) {
+        int l = getScrollBarLength(area);
+        int p = getScrollBarStart(area, l, getFullVisibleSize(area));
+        int x = 0;
+        int y = 0;
+        if (axis.isHorizontal()) {
+            if (!isOnAxisStart()) {
+                y = area.h() - getThickness();
+            }
+            GuiDraw.drawRect(x, y, area.w(), getThickness(), Color.withAlpha(Color.BLACK.main, 0.25f));
+            drawScrollBar(p, y, l, getThickness());
+        } else {
+            if (!isOnAxisStart()) {
+                x = area.w() - getThickness();
+            }
+            GuiDraw.drawRect(x, y, getThickness(), area.h(), Color.withAlpha(Color.BLACK.main, 0.25f));
+            drawScrollBar(p, y, getThickness(), l);
+        }
+    }
+
+    @Override
+    public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme widgetTheme) {}
+
+    protected boolean shouldDraw(int width, int height) {
+        int size = axis.isHorizontal() ? width : height;
+        return scrollSize > size;
+    }
 
     @SideOnly(Side.CLIENT)
     protected void drawScrollBar(int x, int y, int w, int h) {
