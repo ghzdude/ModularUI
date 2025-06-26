@@ -84,7 +84,8 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable, IDrawa
 
     @SideOnly(Side.CLIENT)
     public void drag(GuiContext context) {
-        this.drag(context.getMouseX(), context.getMouseY());
+        if (canDrag())
+            this.drag(context.getMouse(data.getAxis()));
     }
 
     /**
@@ -92,11 +93,19 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable, IDrawa
      * responsible for scrolling through this view when dragging.
      */
     public void drag(int x, int y) {
-        if (this.data == null || !this.data.dragging) {
-            return;
+        if (canDrag())
+            drag(data.getAxis().isHorizontal() ? x : y);
+    }
+
+    public void drag(int m) {
+        if (canDrag()) {
+            float progress = data.getProgress(getParentArea(), m);
+            this.data.scrollTo(getParentArea(), (int) (progress * (data.getScrollSize() - data.getVisibleSize(getParentArea()))));
         }
-        float progress = data.getProgress(getParentArea(), x, y);
-        this.data.scrollTo(getParentArea(), (int) (progress * (data.getScrollSize() - data.getVisibleSize(getParentArea()))));
+    }
+
+    public final boolean canDrag() {
+        return data != null && !data.dragging;
     }
 
     public int getScroll() {

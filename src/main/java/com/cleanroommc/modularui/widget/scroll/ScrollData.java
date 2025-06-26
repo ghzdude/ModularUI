@@ -10,6 +10,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.Interpolation;
 
 import com.cleanroommc.modularui.utils.MathUtils;
+import com.cleanroommc.modularui.widget.AbstractScrollWidget;
 import com.cleanroommc.modularui.widget.sizer.Area;
 
 import net.minecraft.util.math.MathHelper;
@@ -189,9 +190,12 @@ public abstract class ScrollData implements IDrawable {
     }
 
     public float getProgress(Area area, int mx, int my) {
-        int mainAxisPos = this.axis.isHorizontal() ? mx : my;
+        return getProgress(area, axis.isHorizontal() ? mx : my);
+    }
+
+    public float getProgress(Area area, int m) {
         float fullSize = (float) getFullVisibleSize(area);
-        float progress = (mainAxisPos - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
+        float progress = (m - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
         return MathUtils.clamp(progress, 0f, 1f);
     }
 
