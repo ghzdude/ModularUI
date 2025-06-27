@@ -358,11 +358,6 @@ public abstract class ScrollData implements IDrawable {
     @Override
     public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme widgetTheme) {}
 
-    protected boolean shouldDraw(int width, int height) {
-        int size = axis.isHorizontal() ? width : height;
-        return scrollSize > size;
-    }
-
     @SideOnly(Side.CLIENT)
     protected void drawScrollBar(int x, int y, int w, int h) {
         GuiDraw.drawRect(x, y, w, h, 0xffeeeeee);

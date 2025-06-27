@@ -11,7 +11,6 @@ import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.utils.HoveredWidgetList;
 import com.cleanroommc.modularui.widget.scroll.HorizontalScrollData;
-import com.cleanroommc.modularui.widget.scroll.ScrollArea;
 import com.cleanroommc.modularui.widget.scroll.Scrollbar;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 
@@ -32,8 +31,8 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
     private boolean keepScrollBarInArea = false;
 
     public AbstractScrollWidget(@Nullable HorizontalScrollData x, @Nullable VerticalScrollData y) {
-        this.horizontalBar = new Scrollbar(x, this::getArea);
-        this.verticalBar = new Scrollbar(y, this::getArea);
+        this.horizontalBar = Scrollbar.horizontal(this::getArea);
+        this.verticalBar = Scrollbar.vertical(this::getArea);
         listenGuiAction((IGuiAction.MouseReleased) this::onMouseRelease);
     }
 
@@ -66,8 +65,17 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
 
     @Override
     public void getWidgetsAt(IViewportStack stack, HoveredWidgetList widgets, int x, int y) {
-        if (getArea().isInside(x, y) && !isInsideScrollbarArea(x, y) && hasChildren()) {
-            IViewport.getChildrenAt(this, stack, widgets, x, y);
+        if (getArea().isInside(x, y)) {
+            int tx = x - getArea().x();
+            int ty = y - getArea().y();
+            if (isInsideScrollbarArea(tx, ty)) {
+                if (verticalBar.getArea().isInside(tx, ty))
+                    widgets.add(this.verticalBar, stack.peek());
+                if (horizontalBar.getArea().isInside(tx, ty))
+                    widgets.add(this.horizontalBar, stack.peek());
+            } else if (hasChildren()) {
+                IViewport.getChildrenAt(this, stack, widgets, x, y);
+            }
         }
     }
 
@@ -105,24 +113,25 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
 //        if (this.scroll.mouseClicked(context)) {
 //            return Result.STOP;
 //        }
-        if (this.horizontalBar.mouseClicked(context) || this.verticalBar.mouseClicked(context)) {
-            return Result.STOP;
-        }
+//        if (this.horizontalBar.mouseClicked(context) || this.verticalBar.mouseClicked(context)) {
+//            return Result.STOP;
+//        }
         return Result.IGNORE;
     }
 
     @Override
     public boolean onMouseScroll(ModularScreen.UpOrDown scrollDirection, int amount) {
-        return this.horizontalBar.onMouseScroll(scrollDirection, amount);
+//        return this.horizontalBar.onMouseScroll(scrollDirection, amount);
 //        return this.verticalBar.onMouseScroll(scrollDirection, amount);
 //        return this.scroll.mouseScroll(getContext());
+        return false;
     }
 
     @Override
     public boolean onMouseRelease(int mouseButton) {
 //        this.scroll.mouseReleased(getContext());
-        this.horizontalBar.onMouseRelease(mouseButton);
-        this.verticalBar.onMouseRelease(mouseButton);
+//        this.horizontalBar.onMouseRelease(mouseButton);
+//        this.verticalBar.onMouseRelease(mouseButton);
         return false;
     }
 
@@ -145,8 +154,8 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
     public void postDraw(ModularGuiContext context, boolean transformed) {
         if (!transformed) {
             Stencil.remove();
-            this.horizontalBar.draw(context, getArea(), getWidgetTheme(context.getTheme()));
-            this.verticalBar.draw(context, getArea(), getWidgetTheme(context.getTheme()));
+            this.horizontalBar.draw(context, getWidgetTheme(context.getTheme()));
+            this.verticalBar.draw(context, getWidgetTheme(context.getTheme()));
 //            this.scroll.drawScrollbar();
         }
     }
