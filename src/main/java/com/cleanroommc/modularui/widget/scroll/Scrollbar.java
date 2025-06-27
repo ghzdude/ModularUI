@@ -3,19 +3,26 @@ package com.cleanroommc.modularui.widget.scroll;
 import com.cleanroommc.modularui.animation.Animator;
 import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.layout.IViewport;
+import com.cleanroommc.modularui.api.layout.IViewportStack;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.utils.HoveredWidgetList;
 import com.cleanroommc.modularui.utils.Interpolation;
 import com.cleanroommc.modularui.utils.MathUtils;
 import com.cleanroommc.modularui.widget.Widget;
 
+import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widget.sizer.Area;
 
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -23,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
 
-public class Scrollbar extends Widget<Scrollbar> implements Interactable {
+public class Scrollbar extends Widget<Scrollbar> implements Interactable, IViewport {
 
     public static final int DEFAULT_THICKNESS = 4;
 
@@ -31,11 +38,10 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     @NotNull private GuiAxis axis;
     private boolean axisStart;
     private int thickness = DEFAULT_THICKNESS;
-    private boolean active = false;
     private int scrollSpeed = 30;
     private boolean cancelScrollEdge = true;
 
-    private int scrollSize;
+//    private int scrollSize;
     private int scroll;
     protected boolean dragging;
     protected int clickOffset;
@@ -60,6 +66,22 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         return new Scrollbar(parentArea, GuiAxis.Y);
     }
 
+    public static int getScrollbarStart(Scrollbar scrollbar) {
+        int fullSize = scrollbar.getScrollSize();
+        int visible = getVisibleSize(scrollbar);
+        int l = getScrollbarLength(scrollbar);
+        return ((fullSize - l) * scrollbar.getScroll()) / (fullSize - visible);
+    }
+
+    public static int getScrollbarLength(Scrollbar scrollbar) {
+        int length = (int) (getVisibleSize(scrollbar) / (float) scrollbar.getScrollSize());
+        return Math.max(length, 4); // min length of 4
+    }
+
+    public static int getVisibleSize(Scrollbar scrollbar) {
+        return scrollbar.getParentArea().getSize(scrollbar.getAxis());
+    }
+
     @Override
     public boolean onMouseRelease(int mouseButton) {
         if (isActive()) {
@@ -71,12 +93,44 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        return Interactable.super.onMousePressed(mouseButton);
+        if (mouseClicked(getContext())) {
+            return Result.ACCEPT;
+        }
+        return Result.IGNORE;
+    }
+
+    @Override
+    public boolean onMouseScroll(ModularScreen.UpOrDown scrollDirection, int amount) {
+        ModularGuiContext context = getContext();
+        return mouseScroll(context.getAbsMouseX(), context.getAbsMouseY(), amount * scrollDirection.modifier);
+    }
+
+    /**
+     * This method should be invoked when mouse wheel is scrolling
+     */
+    public boolean mouseScroll(int x, int y, int scroll) {
+        int scrollAmount = (int) Math.copySign(getScrollSpeed(), scroll);
+        int scrollTo;
+        if (isAnimating()) {
+            scrollTo = getAnimatingTo() - scrollAmount;
+        } else {
+            scrollTo = getScroll() - scrollAmount;
+        }
+
+        // simulate scroll to determine whether event should be canceled
+        int oldScroll = getScroll();
+
+        boolean changed = scrollTo(getArea(), scrollTo);;
+        scrollTo(getArea(), oldScroll);
+        if (changed) {
+            animateTo(getArea(), scrollTo);
+            return true;
+        }
+        return isCancelScrollEdge();
     }
 
     /* GUI code for easier manipulations */
 
-    @SideOnly(Side.CLIENT)
     public boolean mouseClicked(GuiContext context) {
         return this.mouseClicked(context.getAbsMouseX(), context.getAbsMouseY());
     }
@@ -85,30 +139,25 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
      * This method should be invoked to register dragging
      */
     public boolean mouseClicked(int x, int y) {
-        if (isActive()) {
-            Area area = getParentArea();
-            int crossAxis = axis.isHorizontal() ? y : x;
-            int mainAxis = axis.isHorizontal() ? x : y;
+        if (isActive() && getArea().isInside(x, y)) {
+//            int crossAxis = isHorizontal() ? y : x;
+            int mainAxis = isHorizontal() ? x : y;
+            Area parent = getParentArea();
+            this.dragging = true;
+            this.clickOffset = mainAxis;
 
-            if (isOnAxisStart() && crossAxis <= area.getPoint(this.axis.getOther()) + getThickness() ||
-                    !isOnAxisStart() && crossAxis >= area.getEndPoint(this.axis.getOther()) - getThickness()) {
-                this.dragging = true;
-                this.clickOffset = mainAxis;
+            int scrollBarSize = getScrollbarStart(this);
+            int start = getScrollbarStart(this);
+            int areaStart = parent.getPoint(getAxis());
+            boolean clickInsideBar = mainAxis >= areaStart + start && mainAxis <= areaStart + start + scrollBarSize;
 
-                int scrollBarSize = getScrollBarLength(area);
-                int start = getScrollBarStart(area, scrollBarSize);
-                int areaStart = area.getPoint(this.axis);
-                boolean clickInsideBar = mainAxis >= areaStart + start && mainAxis <= areaStart + start + scrollBarSize;
-
-                if (clickInsideBar) {
-                    this.clickOffset = x - areaStart - start; // relative click position inside bar
-                } else {
-                    this.clickOffset = scrollBarSize / 2; // assume click position in center of bar
-                }
-
-                return true;
+            if (clickInsideBar) {
+                this.clickOffset = x - areaStart - start; // relative click position inside bar
+            } else {
+                this.clickOffset = scrollBarSize / 2; // assume click position in center of bar
             }
-            return false;
+
+            return true;
         }
         return false;
     }
@@ -123,18 +172,19 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         GuiAxis crossAxis = mainAxis.getOther();
 
         area.setSize(mainAxis, parent.getSize(mainAxis));
-        area.setSize(crossAxis, getThickness());
+        area.setSize(crossAxis, this.thickness);
 
         int start = isOnAxisStart() ? 0 : parent.getSize(crossAxis) - parent.getPadding().getEnd(crossAxis);
-        area.setPoint(crossAxis, start - getThickness());
+        int cross = keepScrollBarInArea ? start - getThickness() : start;
+        area.setPoint(crossAxis, cross);
         area.setPoint(mainAxis, 0);
 
         this.clamp(parent);
-        if (this.keepScrollBarInArea) return;
-
-
-        // todo this doesn't work
-//        if (this.getAxis().isHorizontal()) {
+//        if (this.keepScrollBarInArea) return;
+//
+//
+//        // todo this doesn't work
+//        if (isHorizontal()) {
 //            area.y += this.getThickness();
 //        } else {
 //            area.x += this.getThickness();
@@ -143,8 +193,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     @SideOnly(Side.CLIENT)
     public void drag(GuiContext context) {
-        if (canDrag())
-            this.drag(context.getMouse(axis));
+        if (canDrag()) drag(context.getMouse(getAxis()));
     }
 
     /**
@@ -152,8 +201,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
      * responsible for scrolling through this view when dragging.
      */
     public void drag(int x, int y) {
-        if (canDrag())
-            drag(axis.isHorizontal() ? x : y);
+        if (canDrag()) drag(isHorizontal() ? x : y);
     }
 
     public void drag(int m) {
@@ -163,23 +211,19 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         }
     }
 
-    public float getProgress(Area area, int mx, int my) {
-        return getProgress(area, axis.isHorizontal() ? mx : my);
-    }
-
     public float getProgress(Area area, int m) {
-        float fullSize = (float) area.getSize(this.axis);
-        float progress = (m - area.getPoint(this.axis) - clickOffset) / (fullSize - getScrollBarLength(area));
+        float fullSize = (float) area.getSize(getAxis());
+        float progress = (m - area.getPoint(getAxis()) - clickOffset) / (fullSize - getScrollBarLength(area));
         return MathUtils.clamp(progress, 0f, 1f);
     }
 
     public int getScrollBarLength(Area area) {
-        int length = (int) (getVisibleSize(area) / (float) this.scrollSize);
+        int length = (int) (getVisibleSize(area) / (float) getScrollSize());
         return Math.max(length, 4); // min length of 4
     }
 
     public final int getVisibleSize(Area area) {
-        return Math.max(0, area.getSize(this.axis) - area.getPadding().getTotal(this.axis));
+        return Math.max(0, area.getSize(getAxis()) - area.getPadding().getTotal(getAxis()));
     }
 
     public final boolean canDrag() {
@@ -194,9 +238,11 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
      * Scroll to the position in the scroll area
      */
     public boolean scrollTo(Area area, int scroll) {
-        if (isActive())
-            this.scroll = scroll;
-        return clamp(area);
+        if (!isActive()) return false;
+        int old = this.scroll;
+        this.scroll = scroll;
+        clamp(area);
+        return this.scroll != old;
     }
 
     /**
@@ -207,28 +253,20 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         int size = getVisibleSize(area);
 
         int old = this.scroll;
-        if (this.scrollSize <= size) {
+        if (this.getScrollSize() <= size) {
             this.scroll = 0;
         } else {
-            this.scroll = MathHelper.clamp(this.scroll, 0, this.scrollSize - size);
+            this.scroll = MathHelper.clamp(this.scroll, 0, getScrollSize() - size);
         }
         return old != this.scroll; // returns true if the area was clamped
     }
 
-    public int getScrollBarStart(Area area, int scrollBarLength, int fullVisibleSize) {
-        return ((fullVisibleSize - scrollBarLength) * getScroll()) / (getScrollSize() - getVisibleSize(area));
-    }
-
-    public int getScrollBarStart(Area area, int scrollBarLength) {
-        return getScrollBarStart(area, scrollBarLength, area.getSize(this.axis));
-    }
-
     public boolean isVertical() {
-        return this.axis.isVertical();
+        return this.getAxis().isVertical();
     }
 
     public boolean isHorizontal() {
-        return this.axis.isHorizontal();
+        return this.getAxis().isHorizontal();
     }
 
     /**
@@ -246,7 +284,31 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         this.cancelScrollEdge = cancelScrollEdge;
     }
 
-    public GuiAxis getAxis() {
+    public boolean isAnimating() {
+        return this.scrollAnimator.isAnimating();
+    }
+
+    public int getAnimationDirection() {
+        if (!isAnimating()) return 0;
+        return this.scrollAnimator.getMax() >= this.scrollAnimator.getMin() ? 1 : -1;
+    }
+
+    public int getAnimatingTo() {
+        return this.animatingTo;
+    }
+
+    public void animateTo(Area area, int x) {
+        this.scrollAnimator.bounds(this.scroll, x).onUpdate(value -> {
+            if (scrollTo(area, (int) value)) {
+                this.scrollAnimator.stop(false); // stop animation once an edge is hit
+            }
+        });
+        this.scrollAnimator.reset();
+        this.scrollAnimator.animate();
+        this.animatingTo = x;
+    }
+
+    public @NotNull GuiAxis getAxis() {
         return this.axis;
     }
 
@@ -271,12 +333,12 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         if (!isActive()) return;
         Area parent = getParentArea();
         Area area = getArea();
-        int l = getScrollBarLength(parent);
-        int p = getScrollBarStart(parent, l, parent.getSize(this.axis));
+        int l = getScrollbarLength(this);
+        int p = getScrollbarStart(this);
         int x = area.x();
         int y = area.y();
 
-        if (axis.isHorizontal()) {
+        if (isHorizontal()) {
             GuiDraw.drawRect(x, y, parent.w(), getThickness(), Color.withAlpha(Color.BLACK.main, 0.25f));
             drawScrollBar(p, y, l, getThickness());
         } else {
@@ -286,19 +348,18 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     }
 
     @SideOnly(Side.CLIENT)
-    protected void drawScrollBar(int x, int y, int w, int h) {
+    protected static void drawScrollBar(int x, int y, int w, int h) {
         GuiDraw.drawRect(x, y, w, h, 0xffeeeeee);
         GuiDraw.drawRect(x + 1, y + 1, w - 1, h - 1, 0xff666666);
         GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, 0xffaaaaaa);
     }
 
     public int getScrollSize() {
-        return this.scrollSize;
+        return getArea().getSize(getAxis());
     }
 
     public void setScrollSize(int size) {
-        this.active = size > getVisibleSize(getParentArea());
-        this.scrollSize = size;
+        this.getArea().setSize(getAxis(), size);
     }
 
     public boolean isDragging() {
@@ -306,11 +367,23 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     }
 
     public boolean isActive() {
-        return active && scrollSize > getParentArea().getSize(axis);
+        return getScrollSize() > getParentArea().getSize(axis);
     }
 
     @Override
     public Area getParentArea() {
         return this.parentArea.get();
+    }
+
+    @Override
+    public void getSelfAt(IViewportStack stack, HoveredWidgetList widgets, int x, int y) {
+        if (isInside(stack, x, y)) {
+            widgets.add(this, stack.peek());
+        }
+    }
+
+    @Override
+    public void getWidgetsAt(IViewportStack stack, HoveredWidgetList widgets, int x, int y) {
+
     }
 }

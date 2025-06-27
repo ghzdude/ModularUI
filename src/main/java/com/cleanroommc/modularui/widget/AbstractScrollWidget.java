@@ -65,17 +65,16 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
 
     @Override
     public void getWidgetsAt(IViewportStack stack, HoveredWidgetList widgets, int x, int y) {
-        if (getArea().isInside(x, y)) {
-            int tx = x - getArea().x();
-            int ty = y - getArea().y();
-            if (isInsideScrollbarArea(tx, ty)) {
-                if (verticalBar.getArea().isInside(tx, ty))
-                    widgets.add(this.verticalBar, stack.peek());
-                if (horizontalBar.getArea().isInside(tx, ty))
-                    widgets.add(this.horizontalBar, stack.peek());
-            } else if (hasChildren()) {
-                IViewport.getChildrenAt(this, stack, widgets, x, y);
-            }
+        int tx = x - getArea().x();
+        int ty = y - getArea().y();
+        if (isInsideScrollbarArea(tx, ty)) {
+            if (verticalBar.getArea().isInside(tx, ty))
+                widgets.add(this.verticalBar, stack.peek());
+            if (horizontalBar.getArea().isInside(tx, ty))
+                widgets.add(this.horizontalBar, stack.peek());
+        }
+        if (getArea().isInside(x, y) && hasChildren()) {
+            IViewport.getChildrenAt(this, stack, widgets, x, y);
         }
     }
 
@@ -121,10 +120,14 @@ public abstract class AbstractScrollWidget<I extends IWidget, W extends Abstract
 
     @Override
     public boolean onMouseScroll(ModularScreen.UpOrDown scrollDirection, int amount) {
-//        return this.horizontalBar.onMouseScroll(scrollDirection, amount);
-//        return this.verticalBar.onMouseScroll(scrollDirection, amount);
+        if ((!this.verticalBar.isActive() || Interactable.hasShiftDown()) &&
+                this.horizontalBar.onMouseScroll(scrollDirection, amount)) {
+            return true;
+        } else {
+            return this.verticalBar.onMouseScroll(scrollDirection, amount);
+        }
 //        return this.scroll.mouseScroll(getContext());
-        return false;
+//        return false;
     }
 
     @Override
